@@ -10,13 +10,21 @@ public class Piece : MonoBehaviour
     public TetrominoData data { get; private set; }
     public Vector3Int[] cells { get; private set; }
     public Vector3Int position { get; private set; }
+    public Ghost ghost { get; private set; }
     public int rotationIndex { get; private set; }
-    public void Initialize(Board board, Vector3Int position, TetrominoData data)
+    public float stepDelay = 1f;
+    public float lockDelay = 0.5f;
+    private float stepTime;
+    private float lockTime;
+    public void Initialize(Board board, Vector3Int position, TetrominoData data, Ghost ghost)
     {
         this.board = board;
         this.position = position;
         this.data = data;
         rotationIndex = 0;
+        stepTime = Time.time + stepDelay;
+        lockTime = 0f;
+        this.ghost = ghost;
         if (input == null)
         {
             input = GetComponent<PlayerInput>();
@@ -53,6 +61,7 @@ public class Piece : MonoBehaviour
             if (valid)
             {
                 position = newPosition;
+                lockTime = 0f;
             }
         }
         else
@@ -87,8 +96,10 @@ public class Piece : MonoBehaviour
                 newPosition = position + Vector3Int.down;
                 valid = board.IsValidPosition(this, newPosition);
             }
+            Lock();
         }
         board.Set(this);
+        ghost.AfterAll();
     }
     private void Rotate(int direction)
     {
@@ -131,19 +142,21 @@ public class Piece : MonoBehaviour
         for (int i=0;i<data.wallKicks.GetLength(1);i++)
         {
             Vector2Int translation = data.wallKicks[wallKickIndex, i];
-            if (board.IsValidPosition(this,(Vector3Int)translation)) return true;
+            Vector3Int valid = position + (Vector3Int)translation;
+            if (board.IsValidPosition(this, valid)) {board.Clear(this); position = valid; lockTime = 0f; board.Set(this) ; return true; }
         }
         return false;
     }
     private int GetWallKickIndex(int rotationIndex, int rotationDirection)
     {
         int wallKickIndex = rotationIndex * 2;
-        if (rotationDirection<0)
+        if (rotationDirection < 0)
         {
             wallKickIndex--;
         }
         return Wrap(wallKickIndex, 0, data.wallKicks.GetLength(0));
     }
+
     private int Wrap(int input, int min, int max)
     {
         if (input < min)
@@ -154,5 +167,36 @@ public class Piece : MonoBehaviour
         {
             return min + (input - min) % (max - min);
         }
+    }
+    private void Update()
+    {
+        lockTime += Time.deltaTime;
+        if (Time.time>=stepTime)
+        {
+            Step();
+            ghost.AfterAll();
+        }
+    }
+    private void Step()
+    {
+        board.Clear(this);
+        stepTime = Time.time + stepDelay;
+        Vector3Int newPosition = position + Vector3Int.down;
+        bool valid = board.IsValidPosition(this, newPosition);
+        if (valid)
+        {
+            position = newPosition;
+        }
+        if (lockTime >= lockDelay && !valid)
+        {
+            Lock();
+        }
+        board.Set(this);
+    }
+    private void Lock()
+    {
+        board.Set(this);
+        board.ClearLines();
+        board.SpawnPiece();
     }
 }
