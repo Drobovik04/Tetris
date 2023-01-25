@@ -51,7 +51,7 @@ public class Board : MonoBehaviour
             Vector3Int tilePosition = piece.cells[i] + piece.position;
             tilemap.SetTile(tilePosition, piece.data.tile);
         }
-        ghost.AfterAll();
+       
     }
     public void Clear(Piece piece)
     {

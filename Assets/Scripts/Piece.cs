@@ -174,8 +174,8 @@ public class Piece : MonoBehaviour
         if (Time.time>=stepTime)
         {
             Step();
-            ghost.AfterAll();
         }
+        ghost.AfterAll();
     }
     private void Step()
     {

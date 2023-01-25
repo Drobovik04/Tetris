@@ -43,6 +43,7 @@ public class Ghost : MonoBehaviour
         Vector3Int position = trackingPiece.position;
         int current = position.y;
         int bottom = -board.boardSize.y / 2 - 1;
+        board.Clear(trackingPiece);
         for (int row = current;row>=bottom;row--)
         {
             position.y = row;
