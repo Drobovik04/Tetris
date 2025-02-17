@@ -995,9 +995,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CurrentLobbyId: 0
-  HostButton: {fileID: 358427473}
-  LobbyNameText: {fileID: 604557515}
-  MainMenu: {fileID: 0}
 --- !u!114 &1080585938
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1045,8 +1042,8 @@ MonoBehaviour:
   headlessStartMode: 0
   editorAutoStart: 0
   sendRate: 60
-  offlineScene: 
-  onlineScene: 
+  offlineScene: Assets/Scenes/Menu.unity
+  onlineScene: Assets/Scenes/Lobby.unity
   offlineSceneLoadDelay: 0
   transport: {fileID: 0}
   networkAddress: localhost
@@ -1054,10 +1051,11 @@ MonoBehaviour:
   disconnectInactiveConnections: 0
   disconnectInactiveTimeout: 60
   authenticator: {fileID: 0}
-  playerPrefab: {fileID: 0}
-  autoCreatePlayer: 0
+  playerPrefab: {fileID: 5647118486191055083, guid: 1284dc9cea94c7d4394a5a3bd46d61d7, type: 3}
+  autoCreatePlayer: 1
   playerSpawnMethod: 0
-  spawnPrefabs: []
+  spawnPrefabs:
+  - {fileID: 302809747345464725, guid: fe8674cb0d032c74f81d23dc983e6db3, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
     bufferTimeMultiplier: 2
@@ -1073,6 +1071,7 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
+  GamePlayerPrefab: {fileID: 9197601336829762430, guid: fe8674cb0d032c74f81d23dc983e6db3, type: 3}
 --- !u!4 &1080585941
 Transform:
   m_ObjectHideFlags: 0
