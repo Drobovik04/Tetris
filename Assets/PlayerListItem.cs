@@ -21,6 +21,12 @@ public class PlayerListItem : MonoBehaviour
 
     public void ChangeReadyStatus()
     {
+        if (this == null || gameObject == null)
+        {
+            Debug.LogWarning("PlayerListItem уже уничтожен. Отмена операции.");
+            return;
+        }
+        //if (PlayerReadyText == null) PlayerReadyText = gameObject.transform.Find("PlayerReadyText").GetComponent<TMP_Text>();
         if (Ready)
         {
             PlayerReadyText.text = "Ready";
@@ -40,6 +46,11 @@ public class PlayerListItem : MonoBehaviour
 
     public void SetPlayerValues()
     {
+        if (this == null || gameObject == null)
+        {
+            Debug.LogWarning("Попытка обновить удаленный PlayerListItem.");
+            return;
+        }
         PlayerNameText.text = PlayerName;
         ChangeReadyStatus();
         if (!AvatarReceived)

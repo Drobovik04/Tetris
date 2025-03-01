@@ -1,8 +1,12 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using Mirror;
+using Telepathy;
+using System.Linq;
 
-public class Board : MonoBehaviour
+public class Board : NetworkBehaviour
 {
+    public PlayerObjectController player;
     public Tilemap tilemap { get; private set; }
     public Piece activePiece { get; private set; }
     public TetrominoData[] tetrominoes;
@@ -21,15 +25,18 @@ public class Board : MonoBehaviour
     {
         tilemap = GetComponentInChildren<Tilemap>();
         activePiece = GetComponentInChildren<Piece>();
-        for (int i=0;i<tetrominoes.Length;i++)
+        for (int i = 0; i < tetrominoes.Length; i++)
         {
             tetrominoes[i].Initialize();
         }
+        //SpawnPiece();
     }
     private void Start()
     {
         SpawnPiece();
     }
+
+    [Server]
     public void SpawnPiece()
     {
         int random = Random.Range(0, tetrominoes.Length);
@@ -42,8 +49,14 @@ public class Board : MonoBehaviour
         else
         {
             tilemap.ClearAllTiles();
+            Destroy(activePiece);
+            
+            CustomNetworkManager.GameManagerInstance.RpcAnnounceWinner(CustomNetworkManager.Instance.GamePlayers.OrderByDescending(x => x.Score).First().PlayerName);
         }
+        RpcRefreshBoard();
     }
+
+    [Server]
     public void Set(Piece piece)
     {
         for (int i = 0;i< piece.cells.Length; i++)
@@ -53,6 +66,8 @@ public class Board : MonoBehaviour
         }
        
     }
+
+    [Server]
     public void Clear(Piece piece)
     {
         for (int i = 0; i < piece.cells.Length; i++)
@@ -79,16 +94,32 @@ public class Board : MonoBehaviour
         }
         return true;
     }
+
+    [Server]
     public void ClearLines()
     {
+        int linesCleared = 0;
         int row = Bounds.yMin;
         while (row < Bounds.yMax)
         {
             if (IsLineFull(row))
             {
                 LineClear(row);
+                linesCleared++;
             }
             else row++;
+        }
+
+        if (linesCleared > 0)
+        {
+            // Например, начисляем 10 очков за каждую линию
+            CustomNetworkManager.Instance.AddScore(LobbyController.Instance.LocalPlayerController, linesCleared * 10);
+            if (LobbyController.Instance.LocalPlayerController.Score >= CustomNetworkManager.Instance.winningScore)
+            {
+                tilemap.ClearAllTiles();
+                Destroy(activePiece);
+                CustomNetworkManager.GameManagerInstance.RpcAnnounceWinner(LobbyController.Instance.LocalPlayerController.PlayerName);
+            }
         }
     }
     private bool IsLineFull(int row)
@@ -103,6 +134,8 @@ public class Board : MonoBehaviour
         }
         return true;
     }
+
+    [Server]
     private void LineClear(int row)
     {
         for (int col = Bounds.xMin; col < Bounds.xMax; col++)
@@ -114,12 +147,20 @@ public class Board : MonoBehaviour
         {
             for (int col = Bounds.xMin; col < Bounds.xMax; col++)
             {
-                Vector3Int position = new Vector3Int(col,row+1,0);
+                Vector3Int position = new Vector3Int(col, row + 1, 0);
                 TileBase above = tilemap.GetTile(position);
-                position = new Vector3Int(col,row,0);
-                tilemap.SetTile(position,above);
+                position = new Vector3Int(col, row, 0);
+                tilemap.SetTile(position, above);
             }
             row++;
         }
+    }
+
+    [ClientRpc]
+    void RpcRefreshBoard()
+    {
+        // Клиентская логика обновления доски, например, перерисовка Tilemap.
+        // Если ваша визуальная часть доски завязана на tilemap, можно просто не делать ничего,
+        // так как изменения tilemap происходят автоматически.
     }
 }

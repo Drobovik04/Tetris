@@ -5,6 +5,7 @@ using Mirror;
 using Steamworks;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class SteamLobby : MonoBehaviour
 {
@@ -79,5 +80,15 @@ public class SteamLobby : MonoBehaviour
         manager.networkAddress = SteamMatchmaking.GetLobbyData(new CSteamID(callback.m_ulSteamIDLobby), HostAddressKey);
 
         manager.StartClient();
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        //if (scene.name == "Lobby")
+        //{
+        //    LobbyController.Instance.FindLobbyUI();  // Найти ссылки на UI
+        //    LobbyController.Instance.UpdatePlayerList(); // Обновить список игроков
+        //}
+        //SceneManager.sceneLoaded -= OnSceneLoaded; // Удаляем обработчик
     }
 }

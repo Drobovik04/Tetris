@@ -2,16 +2,24 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Mirror;
+using Unity.VisualScripting;
 
-public class Piece : MonoBehaviour
+public class Piece : NetworkBehaviour
 {
     public PlayerInput input {get; private set;}
     public Board board { get; private set; }
     public TetrominoData data { get; private set; }
     public Vector3Int[] cells { get; private set; }
-    public Vector3Int position { get; private set; }
+
+    public CustomNetworkManager manager;
+
+    [SyncVar]
+    public Vector3Int position;
     public Ghost ghost { get; private set; }
-    public int rotationIndex { get; private set; }
+
+    [SyncVar]
+    public int rotationIndex;
     public float stepDelay = 1f;
     public float lockDelay = 0.5f;
     private float stepTime;
@@ -27,9 +35,9 @@ public class Piece : MonoBehaviour
         this.ghost = ghost;
         if (input == null)
         {
-            input = GetComponent<PlayerInput>();
-            foreach (InputAction a in input.actions)
-                a.started += Move;
+            //input = GetComponent<PlayerInput>();
+            //foreach (InputAction a in input.actions)
+            //    a.started += /*Move*/OnInput;
         }
         if (cells == null)
         {
@@ -40,6 +48,121 @@ public class Piece : MonoBehaviour
             cells[i] = (Vector3Int)data.cells[i];
         }
 
+    }
+    private void OnInput(InputAction.CallbackContext context)
+    {
+        //if (!authority)
+        //    return;
+        //if (manager.GamePlayers[manager.currentPlayerIndex] == board.player)
+        // Отправляем команду на сервер с названием действия
+        CmdProcessInput(context);
+    }
+
+    [Server]
+    public void ProcessInput(string actionName)
+    {
+        board.Clear(this);
+        if (actionName == "LeftRotation")
+        {
+            Rotate(-1);
+        }
+        else if (actionName == "RightRotation")
+        {
+            Rotate(1);
+        }
+        else if (actionName == "Left")
+        {
+            Vector3Int newPos = position + Vector3Int.left;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+                lockTime = 0f;
+            }
+        }
+        else if (actionName == "Right")
+        {
+            Vector3Int newPos = position + Vector3Int.right;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+            }
+        }
+        else if (actionName == "Down")
+        {
+            Vector3Int newPos = position + Vector3Int.down;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+            }
+        }
+        else if (actionName == "FastDown")
+        {
+            Vector3Int newPos = position + Vector3Int.down;
+            while (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+                newPos = position + Vector3Int.down;
+            }
+            Lock();
+        }
+        board.Set(this);
+        RpcUpdateGhost();
+    }
+
+    [Command]
+    void CmdProcessInput(InputAction.CallbackContext context)
+    {
+        if (!CustomNetworkManager.Instance.IsCurrentPlayer(board.player))
+        {
+            // Можно отправить сообщение или просто игнорировать
+            return;
+        }
+        board.Clear(this);
+        if (context.action == input.actions["LeftRotation"])
+        {
+            Rotate(-1);
+        }
+        else if (context.action == input.actions["RightRotation"])
+        {
+            Rotate(1);
+        }
+        else if (context.action == input.actions["Left"])
+        {
+            Vector3Int newPos = position + Vector3Int.left;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+                lockTime = 0f;
+            }
+        }
+        else if (context.action == input.actions["Right"])
+        {
+            Vector3Int newPos = position + Vector3Int.right;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+            }
+        }
+        else if (context.action == input.actions["Down"])
+        {
+            Vector3Int newPos = position + Vector3Int.down;
+            if (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+            }
+        }
+        else if (context.action == input.actions["FastDown"])
+        {
+            Vector3Int newPos = position + Vector3Int.down;
+            while (board.IsValidPosition(this, newPos))
+            {
+                position = newPos;
+                newPos = position + Vector3Int.down;
+            }
+            Lock();
+        }
+        board.Set(this);
+        RpcUpdateGhost();
     }
     public void Move(InputAction.CallbackContext context)
     {
@@ -170,12 +293,19 @@ public class Piece : MonoBehaviour
     }
     private void Update()
     {
+        //lockTime += Time.deltaTime;
+        //if (Time.time>=stepTime)
+        //{
+        //    Step();
+        //}
+        //ghost.AfterAll();
+        if (!isServer)
+            return; // Движение управляется сервером
         lockTime += Time.deltaTime;
-        if (Time.time>=stepTime)
+        if (Time.time >= stepTime)
         {
             Step();
         }
-        ghost.AfterAll();
     }
     private void Step()
     {
@@ -197,6 +327,13 @@ public class Piece : MonoBehaviour
     {
         board.Set(this);
         board.ClearLines();
+        CustomNetworkManager.Instance.NextTurn();
         board.SpawnPiece();
+    }
+
+    [ClientRpc]
+    void RpcUpdateGhost()
+    {
+        ghost.AfterAll();
     }
 }
